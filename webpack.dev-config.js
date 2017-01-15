@@ -12,7 +12,7 @@ module.exports = {
 	    publicPath: '/static/'
 	},
 	resolve: {
-        root: [path.join(__dirname, 'src')],
+        root: [path.join(__dirname, 'dev-src')],
         alias: {
         	wraph: path.join(__dirname, 'src/wraph.js')
         }
