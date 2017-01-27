@@ -1,6 +1,54 @@
 'use strict';
 
+var Store = function(conf) {
+	function subscribe(store, property, callback) {
+		var event = {
+			publish: function() {
+				callback();
+			}
+		}
+		Object.defineProperty(store.prototype, property, {
+			set: function(val) {
+				event.publish();
+				this['_' + property] = val;
+			}
+		});
+		return event;
+	}
+
+	var Instance = function() { }
+	
+	var events = {};
+	
+	conf.subscribe.forEach(function(subscriber) {
+		subscribe(Instance, subscriber.property, subscriber.callback);
+	});
+	
+	
+	var instance = new Instance();
+
+	instance.onUpdate = function(callback) {
+
+	}
+
+	return Object.assign({}, instance, conf.store);
+};
+
 module.exports = {
+	initStore: function(store) {
+		var subscribers = Object.keys(store).map(function(key) {
+			return { 
+				property: key,
+				callback: function() {
+					console.log('Mutated ' + key)
+				}
+			}
+		});
+		var storeInstance = new Store({
+			subscribe: subscribers
+		});
+		return storeInstance;
+	},
 	start: function(el, componentInstance) {
 		return this.render(el, componentInstance);
 	},
@@ -15,6 +63,7 @@ module.exports = {
 	},
 	Component: function(conf) {
 		var Wraph = this;
+
 		var componentInstance = {
 			contentArray: [],
 			contains: function(content) {
@@ -25,6 +74,9 @@ module.exports = {
 				}
 				return this;
 			},
+			state: {				
+			},
+			events: conf.events,
 			get: function(callback) {
 				this._get = callback;
 				return this;
@@ -42,8 +94,14 @@ module.exports = {
 				return this;
 			},
 			onPost: function() {
-				this._post();
+				this.state.loading = true;
+				console.log('hej');
 				this.rerender();
+				this._post().then(function(response) {
+					this.contentArray.push(response);
+					this.state.loading = false;
+					this.rerender();
+				}.bind(this));
 			},
 			onDelete: function(callback) {
 				if(this.parent._delete) {
@@ -52,6 +110,13 @@ module.exports = {
 				this.rerender();
 			}
 		};
+
+		var store = conf.store;
+		/*
+		store.onUpdate(function() {
+			componentInstance.rerender();
+		});
+		*/
 		return Object.assign(conf, componentInstance);
 	},
 	compose: function(componentInstance, node, rerender) {
@@ -100,6 +165,9 @@ function createElement(componentInstance, node) {
 				componentInstance.onPost();
 			} else if(method === 'delete') {
 				componentInstance.onDelete();
+			} else {
+				console.log('event-triggered:', method);
+				componentInstance.events[method]();
 			}
 		});
 	}
