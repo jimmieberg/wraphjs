@@ -1,52 +1,69 @@
 'use strict';
 
-var Store = function(conf) {
+var Store = function(args) {
+	// Provide a callback to mutation of a given property
 	function subscribe(store, property, callback) {
 		var event = {
-			publish: function() {
+			publish: function(property, val) {
+				args.updated(property, val);
 				callback();
 			}
 		}
 		Object.defineProperty(store.prototype, property, {
+			get: function() {
+				return this['_' + property];
+			},
 			set: function(val) {
-				event.publish();
+				event.publish(property, val);
 				this['_' + property] = val;
 			}
 		});
 		return event;
 	}
-
+	// Store class
 	var Instance = function() { }
-	
-	var events = {};
-	
-	conf.subscribe.forEach(function(subscriber) {
-		subscribe(Instance, subscriber.property, subscriber.callback);
+	// Subscribe to mutations of certain properties
+	args.properties.forEach(function(property) {
+		subscribe(Instance, property.key, property.callback);
 	});
-	
-	
+	// Instantiate store instance
 	var instance = new Instance();
-
-	instance.onUpdate = function(callback) {
-
-	}
-
-	return Object.assign({}, instance, conf.store);
+	// Populate store with data
+	args.properties.forEach(function(property) {
+		instance[property.key] = property.value;
+	});
+	return instance;
 };
 
 module.exports = {
-	initStore: function(store) {
-		var subscribers = Object.keys(store).map(function(key) {
+	initStore: function(store, events) {
+		// Event bus for this store
+		var eventBus = {
+			subscribers: [],
+			subscribe: function(subscriber) {
+				eventBus.subscribers.push(subscriber);
+			},
+			updated: function() {
+				eventBus.subscribers.forEach(function(subscriber) {
+					subscriber();
+				});
+			}
+		};
+		// Listen to mutation of present properties
+		var properties = Object.keys(store).map(function(key) {
 			return { 
-				property: key,
+				key: key,
+				value: store[key],
 				callback: function() {
-					console.log('Mutated ' + key)
+					console.log('Mutated', key);
 				}
 			}
 		});
-		var storeInstance = new Store({
-			subscribe: subscribers
-		});
+		// Init store
+		var storeInstance = new Store({ properties, updated: eventBus.updated });
+		// Keep reference to event bus in store
+		storeInstance.__eventBus = eventBus;
+
 		return storeInstance;
 	},
 	start: function(el, componentInstance) {
@@ -61,7 +78,7 @@ module.exports = {
 		el.appendChild(createDOM(structure));
 		return structure;
 	},
-	Component: function(conf) {
+	Component: function(args) {
 		var Wraph = this;
 
 		var componentInstance = {
@@ -74,9 +91,7 @@ module.exports = {
 				}
 				return this;
 			},
-			state: {				
-			},
-			events: conf.events,
+			state: { },
 			get: function(callback) {
 				this._get = callback;
 				return this;
@@ -95,7 +110,6 @@ module.exports = {
 			},
 			onPost: function() {
 				this.state.loading = true;
-				console.log('hej');
 				this.rerender();
 				this._post().then(function(response) {
 					this.contentArray.push(response);
@@ -111,15 +125,16 @@ module.exports = {
 			}
 		};
 
-		var store = conf.store;
-		/*
-		store.onUpdate(function() {
-			componentInstance.rerender();
-		});
-		*/
-		return Object.assign(conf, componentInstance);
+		var store = args.store;
+		if(store) {
+			store.__eventBus.subscribe(function() {
+				// Todo: trigger rerender
+			});
+		}
+		return Object.assign(args, componentInstance);
 	},
 	compose: function(componentInstance, node, rerender) {
+		console.log(node, rerender);
 		if(typeof(node) === 'string') {
 			return node;
 		} else {

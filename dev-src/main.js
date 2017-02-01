@@ -7,7 +7,7 @@ var Todo = require('Components/Todo.jsx');
 
 // Define store
 var Store = {
-	name: '',
+	name: 'My Todo-list',
 	todos: [
 		{ id: 99, text: 'Take out trash', type: 1 },
 		{ id: 100, text: 'Do dishes', type: 2 },
@@ -18,23 +18,18 @@ var Store = {
 	}
 };
 
-var myStore = Wraph.initStore(Store);
+var store = Wraph.initStore(Store);
 
-myStore.name = 'hej';
-
-var Events = {
+var events = {
 	'add-todo': function() {
-		name = 'Test';
-		Store.todos.push(
-			{ id: 112, text: 'Another item', type: 2 }
-		);
+		store.name = 'test';
 	}
 };
 
-var root = Todo.root(Events, Store);
+var root = Todo.root(store, events);
 
 // Define app
-/*root.contains(Store.todos)
+root.contains(Store.todos)
 	.get(function(todo) {
 		return Todo.listItem()
 			.contains(todo)
@@ -47,7 +42,7 @@ var root = Todo.root(Events, Store);
 	.delete(function(i, todo) {
 		Store.todos.splice(i, 1);
 	});
-*/
+
 // Start app
 var app = document.getElementById('app');
 Wraph.start(app, root);

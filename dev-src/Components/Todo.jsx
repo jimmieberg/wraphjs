@@ -6,14 +6,14 @@ function dom(type, props, ...children) {
 var Wraph = require('wraph');
 
 module.exports = {
-	root: function(events, store) {		
+	root: function(store, events) {
 		return new Wraph.Component({
-			events,
 			store,
+			events,
 			template: function() {
 				return (
 					<div style="background-color: #eeeeee; padding: 15px;">
-						{ store.name }
+						<h1>{ store.name }</h1>
 						To do list:
 						<hr />
 						<button w-click="add-todo">+</button>
