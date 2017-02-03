@@ -14,8 +14,10 @@ var Store = function(args) {
 				return this['_' + property];
 			},
 			set: function(val) {
-				event.publish(property, val);
 				this['_' + property] = val;
+				setTimeout(function() {
+					event.publish(property, val);
+				}, 0);
 			}
 		});
 		return event;
@@ -55,7 +57,7 @@ module.exports = {
 				key: key,
 				value: store[key],
 				callback: function() {
-					console.log('Mutated', key);
+					
 				}
 			}
 		});
@@ -66,12 +68,9 @@ module.exports = {
 
 		return storeInstance;
 	},
-	start: function(el, componentInstance) {
-		return this.render(el, componentInstance);
-	},
 	render: function(el, componentInstance) {
 		var rerender = function() {
-			this.start(el, componentInstance);
+			this.render(el, componentInstance);
 		}.bind(this);
 		var structure = this.compose(componentInstance, componentInstance.template(), rerender);
 		el.innerHTML = '';
@@ -92,6 +91,11 @@ module.exports = {
 				return this;
 			},
 			state: { },
+			trigger: function(event, arg) {
+				if(args.events[event]) {
+					args.events[event](arg);
+				}
+			},
 			get: function(callback) {
 				this._get = callback;
 				return this;
@@ -126,15 +130,16 @@ module.exports = {
 		};
 
 		var store = args.store;
+		componentInstance = Object.assign(args, componentInstance);
+
 		if(store) {
 			store.__eventBus.subscribe(function() {
-				// Todo: trigger rerender
+				componentInstance.rerender();
 			});
 		}
-		return Object.assign(args, componentInstance);
+		return componentInstance;
 	},
 	compose: function(componentInstance, node, rerender) {
-		console.log(node, rerender);
 		if(typeof(node) === 'string') {
 			return node;
 		} else {
@@ -159,7 +164,7 @@ module.exports = {
 					return this.compose(componentInstance, componentInstance._get(componentInstance.contentArray), rerender);
 				}
 			} else {
-				node.children = node.children.map(function(child) {
+				node.children = (node.children || []).map(function(child) {
 					return this.compose(componentInstance, child, rerender);
 				}.bind(this));
 			}
@@ -168,6 +173,7 @@ module.exports = {
 	}
 };
 
+
 /**
  *
  */
@@ -175,14 +181,9 @@ function createElement(componentInstance, node) {
 	var element = document.createElement(node.type);
 	if(node.props && node.props['w-click']) {
 		element.addEventListener('click', function() {
-			var method = node.props['w-click'];
-			if(method === 'post') {
-				componentInstance.onPost();
-			} else if(method === 'delete') {
-				componentInstance.onDelete();
-			} else {
-				console.log('event-triggered:', method);
-				componentInstance.events[method]();
+			var action = node.props['w-click'];
+			if(componentInstance.actions[action]) {
+				componentInstance.actions[action].call(componentInstance);
 			}
 		});
 	}

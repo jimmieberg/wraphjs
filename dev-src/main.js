@@ -7,6 +7,7 @@ var Todo = require('Components/Todo.jsx');
 
 // Define store
 var Store = {
+	inputName: 'test',
 	name: 'My Todo-list',
 	todos: [
 		{ id: 99, text: 'Take out trash', type: 1 },
@@ -21,6 +22,9 @@ var Store = {
 var store = Wraph.initStore(Store);
 
 var events = {
+	'set-name': function(name) {
+		store.name = name;
+	},
 	'add-todo': function() {
 		store.name = 'test';
 	}
@@ -44,6 +48,5 @@ root.contains(Store.todos)
 	});
 
 // Start app
-var app = document.getElementById('app');
-Wraph.start(app, root);
+Wraph.render(document.getElementById('app'), root);
 

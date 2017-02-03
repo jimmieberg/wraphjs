@@ -10,14 +10,23 @@ module.exports = {
 		return new Wraph.Component({
 			store,
 			events,
+			actions: {
+				'set-name': function() {
+					this.trigger('set-name', 'New name');
+				}
+			},
 			template: function() {
 				return (
-					<div style="background-color: #eeeeee; padding: 15px;">
-						<h1>{ store.name }</h1>
-						To do list:
-						<hr />
-						<button w-click="add-todo">+</button>
-						<content />
+					<div>
+						Name of your list: <input type="text" />
+						<button w-click="set-name">Set</button>
+						<div style="background-color: #eeeeee; padding: 15px;">
+							<h1>{ store.name }</h1>
+							To do list:
+							<hr />
+							<button w-click="add-todo">+</button>
+							<content />
+						</div>
 					</div>
 				);
 			}.bind(this),
